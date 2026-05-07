@@ -307,15 +307,14 @@ input::placeholder { color: #555; }
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
-// Microsoft Forms IDs
-const FORM_IN_ID  = 'HQSW39nCCn';
-const FORM_OUT_ID = 'NZbMLR8iJb';
-
-// Forms question entry IDs (from your form)
-// Location question ID
-const Q_LOCATION = 'r1a164b5692784a08b58199fd2e43';  // UPDATE THIS
-// Name question ID  
-const Q_NAME     = 'r_name';  // UPDATE THIS after checking form
+const TENANT_ID  = '0ee09618-8e36-48b0-b462-2ea263c9794f';
+const USER_ID    = 'cba1bc6e-6f29-4cac-8651-5a209f7652c3';
+const FORM_GUID_IN  = 'GJbgDjaOsEi0Yi6iY8l5T268ocspb6xMhlFaIJ92UsNUNUZPTlhMREFQUUpRTkhBOEs4QldLR1JJMC4u';
+const FORM_GUID_OUT = 'GJbgDjaOsEi0Yi6iY8l5T268ocspb6xMhlFaIJ92UsNUNEhOSk1DUE9USTdUSFVZNkRKS1BCSlBGUC4u';
+const SUBMIT_URL_IN  = `https://forms.office.com/formapi/api/${TENANT_ID}/users/${USER_ID}/forms('${FORM_GUID_IN}')/responses`;
+const SUBMIT_URL_OUT = `https://forms.office.com/formapi/api/${TENANT_ID}/users/${USER_ID}/forms('${FORM_GUID_OUT}')/responses`;
+const Q_LOCATION = 'r97a3ba19fbac496b8a047671d1bfa433';
+const Q_NAME     = 'r4af12f719c7e461d943b74d8a81f043c';
 
 // ── LOCATIONS ─────────────────────────────────────────────────
 const LOCATIONS = ["ILICA - ZARA","ARENA CENTAR - Zara","ARENA CENTAR - Bershka","ARENA CENTAR - STRADIVARIUS","ARENA CENTAR - MASSIMO DUTTI","ARENA CENTAR - PULL&BEAR","ARENA CENTAR - ZARA HOME","CITY CENTER ONE EAST - ZARA","CITY CENTER ONE EAST - STRADIVARIUS","CITY CENTER ONE EAST - OYSHO","CITY CENTER ONE EAST - BERSHKA","CITY CENTER ONE EAST - PULL&BEAR","CITY CENTER ONE WEST - ZARA","CITY CENTER ONE WEST - BERSHKA","CITY CENTER ONE WEST - PULL&BEAR","CITY CENTER ONE WEST - STRADIVARIUS","CITY CENTER ONE WEST - MASSIMO DUTTI","AVENUE MALL - OYSHO","AVENUE MALL - URED UPRAVE","SUPERNOVA ZADAR - ZARA","SUPERNOVA ZADAR - BERSHKA","SUPERNOVA ZADAR - PULL&BEAR","SUPERNOVA ZADAR STRADIVARIUS","MAX CITY PULA - BERSHKA","MAX CITY PULA - PULL&BEAR","MAX CITY PULA - STRADIVARIUS","MALL OF SPLIT - ZARA","MALL OF SPLIT - BERSHKA","MALL OF SPLIT - PULL&BEAR","MALL OF SPLIT - STRADIVARIUS","MALL OF SPLIT - MASSIMO DUTTI","MALL OF SPLIT - ZARA HOME","MALL OF SPLIT - OYSHO","MARMONTOVA - ZARA","SJEVERNA LUKA - SKLADIŠTE","PORTANOVA OSIJEK - ZARA","PORTANOVA OSIJEK - BERSHKA","PORTANOVA OSIJEK - PULL&BEAR","PORTANOVA OSIJEK - STRADIVARIUS","KORZO - ZARA","LUMINI - BERSHKA","SPLIT,Trg Hrvatske bratske zajednice 8","DUBROVNIK, Dr. A. Starčevića 9","ZADAR,Obaa kneza Branimira 20","ŠIBENIK, Velimira Škorpika 6","METKOVIĆ, Ante Starčevića 14","PLOČE, Vladimira Nazora 33","MAKARSKA, Ulica kralja Zvonimira 3A","ŠIBENIK, Stjepana Radića 9","KNIN, Trg Oluje 3","ZADAR, Eugena Kvaternika 3A","TROGIR,Ulica kneza Trpimira 20","BIOGRAD NA MORU, Bračka 2","SOLIN, Stjepana Radića 2","DUBROVNIK, Put sv. Mihajla 8","STON, Put braće Mihanović 3E","IMOTSKI, Glavina Donja bb","METKOVIĆ, Splitska 27","DRNIŠ, Ul. K.A. Stepinca 12","TROGIR, Put Dobrića 4","MAKARSKA, Stjepana Ivčevića 49","MLINI, Gornja Čibaća","STP IMOTSKI, Kralja Zvonimira 35","PULA, Marulićeva 1","PAZIN, Trg Slobode 2","POREČ, Partizanska 4","LABIN, Zelenice 1","UMAG, Obala Josipa Broza Tita 3","PULA, Šijanska Cesta 4","BUZET, Trg Fontana 7","POREČ, M. Vlašića 24","ŽMINJ, Ulica 9. Rujna bb","PAZIN, Vrtlišće 3","BIBIĆI, Bibići bb","BUZET, Mala huba bb","LABIN, Dobrova bb","UMAG, Novigradska bb","RIJEKA, Riva Boduli 3 - IPM","RIJEKA, Korzo 39","OPATIJA, E. Kumičića 8/Papandopula 1","OGULIN, J.J Strossmayera 7","OTOČAC, Kralja Zvonimira 56","KASTAV, Tometići bb","GOSPIĆ, Trg Stjepana Radića 6","RIJEKA, Radnička 39","DELNICE, Supilova 5","BRINJE, Frankopanska 62 B","NOVALJA, Zrinsko Frankopanska 1","CRIKVENICA, Kotorska 19","PRELUK, Preluk 10","DELNICE, Lučićka Cesta 2A","RIJEKA, Corrado Illiasich 25","OTOČAC, A. Starčevića bb","ZABOK, Matije Gupca 13","VARAŽDIN 1, Gospodarska ulica 58","KRIŽEVCI, Trg J. J. Strossmayera 10","ČAKOVEC, Matice Hrvatske 12","ĐURĐEVAC, Antuna Radića 8","BJELOVAR, Trg E. Kvaternika 7","NOVI MAROF, Vrtna 6b","DARUVAR, Stjepana Radića 16","GAREŠNICA, Trg Hrvatskih branitelja 14","LUDBREG, Petra Zrinskog 7","VARAŽDIN, Janka Draškovića 10","IVANEC, Ladislava Šabana 1","VARAŽDIN 2, Gospodarska ulica 58","VARAŽDIN, Trg bana Jelačića 2","KLANJEC, Trg A. Mihanovića 3","KRAPINA, Zagrebačka cesta 9","KOPRIVNICA, Frana Galovića 6","MARČAN, Vinička 5","ĐURĐEVAC, Ulica grada Vukovara 52","DONJA STUBICA, Župana Vratislava 6","GRUBIŠNO POLJE, Nikole Šubića Zrinskog 18","KRAPINSKE TOPLICE, Antuna Mihanovića 12","KOTORIBA, Kralja Tomislava 139","PREGRADA, Ljudevita Gaja 17","BJELOVAR, Trg Stanka Vraza 3","HUM NA SUTLI, Hum na Sutli 159","MARIJA BISTRICA, Šopćev prolaz 1","OROSLAVJE, STP/Mokrice bb","BEDEKOVČINA, Stjepana Radića 1","ĐURMANEC, Đurmanec 137A","PRELOG, Glavna ulica 68","KONJŠČINA, Vukovarska 16","VELIKO TRGOVIŠĆE, Stjepana Radića 53","NOVI MAROF, Ključka bb","MURSKO SREDIŠĆE, J. Broza Tita 6","ZLATAR, Zagrebačka bb","ČAKOVEC, STP Posavec, Neumannova 4","MARIJA BISTRICA, STP/Stubička cesta 3","LUDBREG, STP Centar Kovačić Ludbreg/Koprivnička 36","GRUBIŠNO POLJE, J. Kozarca bb","OSIJEK, Trg Ljudevita Gaja 1","POŽEGA, Republike Hrvatske 1A","VINKOVCI, H.V. Hrvatinića 11","VUKOVAR, J.J. Strossmayera 14","ĐAKOVO, Kralja Tomislava 14","VIROVITICA, Trg kralja Tomislava 4","SLAVONSKI BROD, Ljudevita Gaja 3","SLAVONSKI BROD, Ivana Mažuranića 1","BELI MANASTIR, Osječka 4a","VALPOVO, Vijenac Hrvatske Republike 9","ŽUPANJA, Aleja Matice Hrvatske 29","NOVA GRADIŠKA, Kožarska 2","VINKOVCI, J. Matasovića 6 B","DONJI MIHOLJAC, Trg A. Starčevića 2","NAŠICE, Braće Radić 6","PAKRAC, Kralja Tomislava 73","ILOK, Dr. Franje Tuđmana 4","OSIJEK, Drinska bb","OTOK, Vladimira Nazora 1","SLATINA, Vladimira Nazora 5","POŽEGA, Osječka 34","POŽEGA, Osječka 70","DONJI ANDRIJEVCI, Zagrebačka 3","IVANKOVO, Rojičani 5","ORAHOVICA, Trg Ivana Mažuranića 25","POŽEGA, Vilima Justa 18","SLAVONSKI BROD, Vinogradska cesta 2C","NAŠICE, Vatroslava Lisinskog 100","ĐAKOVO, Vladimira Nazora 16","OSIJEK, Sv. Leopolda Mandića 33","VUKOVAR, Kudeljarska bb","VUKOVAR, Bana Jelačića 53","Jagićeva 33","ZAGREB, Ulica Ive Drmića 3","SISAK, A. i A. Radića 24","VELIKA GORICA, Ulica Hbz 1","IVANIĆ GRAD, Vladimira Nazora 7","ZAGREB, Av. Dubrava 147","KARLOVAC, Petra Zrinskog 13","KUTINA, A.G. Matoša 4","VRBOVEC, Ulica 1. svibnja 1","ZAGREB,Kraljevićeva 30","ZAGREB, Trg bana J. Jelačića 13","ZAGREB, Siget 18C","ZAGREB, Cankareva 7","ZAGREB, Ulica Ive Drmića 3 - Arhivski prostor","SISAK, S. i A. Radića 24, II.kat","SESVETE, Ljudevita Posavskog 7","ZAGREB, Slavenskog 1","KRIŽ, Zagrebačka 5","SISAK, Marina Celjaka 80","DUGO SELO, Srednjak 1","POPOVAČA, Trg Grofova Erdedyja 28","KARLOVAC, Ilovac 29","ŽAKANJE, Žakanje bb","VOJNIĆ, Andrije Hebranga 13","SISAK, Zagrebačka 49D","DUGA RESA, Bana J. Jelačića 48","SVETA NEDJELJA, Ulica Franje Tuđmana 16","JASTREBARSKO, Trešnjevka 6","SV. IVAN ZELINA, Sajmišna bb"];
@@ -435,38 +434,34 @@ function updateClock() {
 // ── SUBMIT ─────────────────────────────────────────────────────
 async function submit(type) {
   const now = new Date();
-  const formId = type === 'Clock In' ? FORM_IN_ID : FORM_OUT_ID;
+  const startDate = new Date(now.getTime() - 30000); // started ~30s ago
+  const submitUrl = type === 'Clock In' ? SUBMIT_URL_IN : SUBMIT_URL_OUT;
 
   showLoading('Slanje evidencije...');
 
-  // Submit to Microsoft Forms via fetch to the form endpoint
-  // Microsoft Forms accepts POST to their endpoint
-  const formUrl = `https://forms.office.com/formapi/api/forms/${formId}/responses`;
-
-  // Build form data matching Microsoft Forms internal format
   const payload = {
-    startDate: now.toISOString(),
+    startDate: startDate.toISOString(),
     submitDate: now.toISOString(),
-    answers: [
+    emailReceiptConsent: false,
+    answers: JSON.stringify([
       { questionId: Q_LOCATION, answer1: selectedLocation },
       { questionId: Q_NAME,     answer1: selectedName }
-    ]
+    ])
   };
 
   let success = false;
   try {
-    // Try direct Forms API
-    const res = await fetch(formUrl, {
+    const res = await fetch(submitUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-      mode: 'no-cors'  // Forms doesn't support CORS, but no-cors still sends
+      mode: 'no-cors'
     });
-    // no-cors returns opaque response — we assume success if no network error
+    // no-cors = opaque response, assume success if no network error thrown
     success = true;
   } catch(e) {
-    // Fallback: open Forms in background iframe
-    success = await submitViaIframe(type, now);
+    console.error('Submit error:', e);
+    success = false;
   }
 
   hideLoading();
@@ -475,26 +470,8 @@ async function submit(type) {
     saveRecentName(selectedName);
     showSuccess(type, now);
   } else {
-    showToast('Greška pri slanju. Pokušajte ponovo.');
+    showToast('Greška pri slanju. Provjerite internetsku vezu.');
   }
-}
-
-function submitViaIframe(type, now) {
-  return new Promise(resolve => {
-    const formId = type === 'Clock In' ? FORM_IN_ID : FORM_OUT_ID;
-    const loc = encodeURIComponent(selectedLocation);
-    const name = encodeURIComponent(selectedName);
-    const url = `https://forms.office.com/e/${formId}?${Q_LOCATION}=${loc}&${Q_NAME}=${name}`;
-
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = url;
-    document.body.appendChild(iframe);
-    setTimeout(() => {
-      document.body.removeChild(iframe);
-      resolve(true);
-    }, 3000);
-  });
 }
 
 // ── SUCCESS SCREEN ─────────────────────────────────────────────
