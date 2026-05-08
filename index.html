@@ -176,6 +176,26 @@ input::placeholder { color: #555; }
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: #450a0a; border: 1px solid #7f1d1d; color: #fca5a5; padding: 12px 20px; border-radius: var(--radius-sm); font-size: 13px; transition: transform 0.3s; z-index: 200; white-space: nowrap; }
 .toast.visible { transform: translateX(-50%) translateY(0); }
 
+/* Scanner */
+.scan-screen{display:none;flex-direction:column;gap:16px;animation:fadeUp 0.3s ease}
+.scan-screen.active{display:flex}
+.scan-wrap{position:relative;border-radius:var(--radius);overflow:hidden;background:#000;aspect-ratio:1}
+#scan-video{width:100%;height:100%;object-fit:cover;display:block}
+.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-frame{width:65%;aspect-ratio:1;border:2px solid #22c55e;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.5)}
+.scan-corner{position:absolute;width:20px;height:20px;border-color:#22c55e;border-style:solid}
+.scan-corner.tl{top:-1px;left:-1px;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
+.scan-corner.tr{top:-1px;right:-1px;border-width:3px 3px 0 0;border-radius:0 4px 0 0}
+.scan-corner.bl{bottom:-1px;left:-1px;border-width:0 0 3px 3px;border-radius:0 0 0 4px}
+.scan-corner.br{bottom:-1px;right:-1px;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
+.scan-hint{text-align:center;font-size:13px;color:var(--muted)}
+.scan-line{position:absolute;left:5%;right:5%;height:2px;background:linear-gradient(90deg,transparent,#22c55e,transparent);animation:scanline 2s ease-in-out infinite}
+@keyframes scanline{0%{top:20%}50%{top:80%}100%{top:20%}}
+.btn-scan{width:100%;padding:18px;border:2px dashed #22c55e;border-radius:var(--radius);background:transparent;color:#22c55e;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s}
+.btn-scan:active{background:rgba(34,197,94,0.1)}
+.btn-scan svg{width:24px;height:24px}
+.btn-scan-cancel{width:100%;padding:14px;border:0.5px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -264,6 +284,11 @@ input::placeholder { color: #555; }
       <div class="time-date" id="clock-date"></div>
     </div>
     <div class="action-btns">
+      <button class="btn-scan" onclick="startScanner()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 4h2m-2 0v4m0-4h-2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8V6a2 2 0 012-2h2M3 16v2a2 2 0 002 2h2m12-18h2a2 2 0 012 2v2m-4 16h2a2 2 0 002-2v-2"/></svg>
+        SKENIRAJ QR KOD NA LOKACIJI
+      </button>
+      <div style="text-align:center;font-size:12px;color:var(--muted);padding:4px 0">ili odaberi ručno:</div>
       <button class="btn-clock btn-in" onclick="submit('Clock In')">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
         DOLAZAK
@@ -273,6 +298,35 @@ input::placeholder { color: #555; }
         ODLAZAK
       </button>
     </div>
+  </div>
+
+  <!-- SCREEN: Scanner -->
+  <div class="scan-screen" id="screen-scanner">
+    <div>
+      <div class="name-back" onclick="stopScanner()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        Natrag
+      </div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:16px;font-weight:500;color:var(--text)">Skenirajte QR kod</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">Usmjerite kameru prema QR kodu na zidu</div>
+    </div>
+    <div class="scan-wrap">
+      <video id="scan-video" autoplay playsinline muted></video>
+      <div class="scan-overlay">
+        <div style="position:relative;width:65%;aspect-ratio:1">
+          <div class="scan-frame"></div>
+          <div class="scan-corner tl"></div>
+          <div class="scan-corner tr"></div>
+          <div class="scan-corner bl"></div>
+          <div class="scan-corner br"></div>
+          <div class="scan-line"></div>
+        </div>
+      </div>
+    </div>
+    <div class="scan-hint">QR kod se automatski prepoznaje</div>
+    <button class="btn-scan-cancel" onclick="stopScanner()">Odustani</button>
   </div>
 
   <!-- SCREEN 4: Uspješno -->
@@ -547,6 +601,103 @@ function findLocation(raw) {
   return null;
 }
 
+// ── SCANNER ────────────────────────────────────────────────────
+let scanStream = null;
+let scanInterval = null;
+let scanCanvas = document.createElement('canvas');
+let scanCtx = scanCanvas.getContext('2d');
+
+async function startScanner() {
+  const video = document.getElementById('scan-video');
+  showScanScreen();
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    video.srcObject = scanStream;
+    await video.play();
+    scanInterval = setInterval(scanFrame, 300);
+  } catch(e) {
+    stopScanner();
+    showToast('Kamera nije dostupna. Kliknite DOLAZAK ili ODLAZAK ručno.');
+  }
+}
+
+function showScanScreen() {
+  document.getElementById('screen-action').classList.remove('active');
+  document.getElementById('screen-scanner').classList.add('active');
+}
+
+function stopScanner() {
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+  const video = document.getElementById('scan-video');
+  video.srcObject = null;
+  document.getElementById('screen-scanner').classList.remove('active');
+  document.getElementById('screen-action').classList.add('active');
+}
+
+async function scanFrame() {
+  const video = document.getElementById('scan-video');
+  if (!video.videoWidth) return;
+  scanCanvas.width = video.videoWidth;
+  scanCanvas.height = video.videoHeight;
+  scanCtx.drawImage(video, 0, 0);
+
+  // Try BarcodeDetector API (Chrome Android, Safari 17+)
+  if ('BarcodeDetector' in window) {
+    try {
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      const codes = await detector.detect(scanCanvas);
+      if (codes.length > 0) {
+        handleScanResult(codes[0].rawValue);
+        return;
+      }
+    } catch(e) {}
+  }
+
+  // Fallback: jsQR library
+  try {
+    const imgData = scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
+    const code = window.jsQR && window.jsQR(imgData.data, imgData.width, imgData.height);
+    if (code) {
+      handleScanResult(code.data);
+    }
+  } catch(e) {}
+}
+
+function handleScanResult(url) {
+  stopScanner();
+  // Parse the scanned URL
+  try {
+    let params;
+    if (url.includes('?')) {
+      params = new URLSearchParams(url.split('?')[1]);
+    } else {
+      showToast('Nevažeći QR kod. Koristite QR kodove s lokacije.');
+      return;
+    }
+    const loc = params.get('loc');
+    const action = params.get('action');
+    if (!loc) {
+      showToast('QR kod ne sadrži lokaciju. Koristite ispravne QR kodove.');
+      return;
+    }
+    const foundLoc = findLocation(loc);
+    if (!foundLoc) {
+      showToast('Lokacija nije prepoznata. Pokušajte ponovo.');
+      return;
+    }
+    selectedLocation = foundLoc;
+    document.getElementById('greeting-loc').textContent = foundLoc;
+    const type = action === 'clockout' ? 'Clock Out' : 'Clock In';
+    showLoading('Slanje evidencije...');
+    setTimeout(function() { submit(type); }, 500);
+  } catch(e) {
+    showToast('Greška pri čitanju QR koda.');
+  }
+}
+
 // ── INIT ───────────────────────────────────────────────────────
 renderLocations();
 
@@ -603,5 +754,6 @@ if (prefillLoc) {
   renderLocations();
 }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 </body>
 </html>
