@@ -535,8 +535,31 @@ renderLocations();
 // Check URL params for prefilled location (from QR code)
 const params = new URLSearchParams(window.location.search);
 const prefillLoc = params.get('loc');
-if (prefillLoc && LOCATIONS.includes(prefillLoc)) {
-  selectLocation(prefillLoc);
+if (prefillLoc) {
+  // Decode and normalize: replace + with space, normalize spaces around dash
+  const decoded = decodeURIComponent(prefillLoc.replace(/\+/g, ' ')).trim();
+  // Try exact match first
+  if (LOCATIONS.includes(decoded)) {
+    selectLocation(decoded);
+  } else {
+    // Try case-insensitive match
+    const match = LOCATIONS.find(l => l.toLowerCase() === decoded.toLowerCase());
+    if (match) {
+      selectLocation(match);
+    } else {
+      // Try fuzzy match - normalize spaces around dashes
+      const normalize = s => s.replace(/\s*-\s*/g, ' - ').replace(/\s+/g, ' ').trim();
+      const normalDecoded = normalize(decoded);
+      const fuzzy = LOCATIONS.find(l => normalize(l).toLowerCase() === normalDecoded.toLowerCase());
+      if (fuzzy) {
+        selectLocation(fuzzy);
+      } else {
+        // Pre-fill search field so user can find it easily
+        document.getElementById('loc-search').value = decoded;
+        renderLocations(decoded);
+      }
+    }
+  }
 }
 </script>
 </body>
