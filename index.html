@@ -706,52 +706,52 @@ const prefillLoc  = params.get('loc');
 const prefillName = params.get('name');
 const action      = params.get('action'); // 'clockin' or 'clockout'
 
-// If name is in URL (from home screen shortcut) — pre-fill and skip to step 3
+// If name in URL (from home screen shortcut) — set name and auto-open scanner
 if (prefillName) {
   const decodedName = decodeURIComponent(prefillName.replace(/\+/g, ' ')).trim();
-  document.getElementById('name-input').value = decodedName;
   selectedName = decodedName;
+  document.getElementById('name-input').value = decodedName;
   document.getElementById('greeting-name').textContent = decodedName.split(' ')[0];
-}
 
-// If location is in URL (from QR scan)
-if (prefillLoc) {
-  const loc = findLocation(prefillLoc);
-  if (loc) {
-    selectedLocation = loc;
-    document.getElementById('greeting-loc').textContent = loc;
-    document.getElementById('selected-loc-display').textContent = loc;
-
-    // If we also have a name AND action — auto-submit immediately
-    if (prefillName && action) {
-      const decodedName = decodeURIComponent(prefillName.replace(/\+/g, ' ')).trim();
-      selectedName = decodedName;
-      const type = action === 'clockout' ? 'Clock Out' : 'Clock In';
-      // Show action screen briefly then auto-submit
-      showScreen('screen-action');
-      updateDots(3);
-      startClock();
-      document.getElementById('greeting-name').textContent = decodedName.split(' ')[0];
+  // If also have location + action (QR scan result) — auto-submit
+  if (prefillLoc && action) {
+    const loc = findLocation(prefillLoc);
+    if (loc) {
+      selectedLocation = loc;
       document.getElementById('greeting-loc').textContent = loc;
-      // Auto submit after short delay so user sees what's happening
-      setTimeout(function() { submit(type); }, 800);
-    } else if (prefillName) {
-      // Have name + location but no action — show action screen
       showScreen('screen-action');
       updateDots(3);
       startClock();
-    } else {
-      // Have location only — go to name screen
-      selectLocation(loc);
+      const type = action === 'clockout' ? 'Clock Out' : 'Clock In';
+      setTimeout(function() { submit(type); }, 600);
+    }
+  } else if (prefillLoc) {
+    // Name + location but no action — show action screen with scan button
+    const loc = findLocation(prefillLoc);
+    if (loc) {
+      selectedLocation = loc;
+      document.getElementById('greeting-loc').textContent = loc;
+      showScreen('screen-action');
+      updateDots(3);
+      startClock();
     }
   } else {
-    // Location not found — pre-fill search
+    // Name only — auto-open scanner immediately
+    showScreen('screen-action');
+    updateDots(3);
+    startClock();
+    // Small delay to let page render, then open scanner
+    setTimeout(function() { startScanner(); }, 400);
+  }
+} else if (prefillLoc) {
+  // Location only (no name) — go to name entry with location pre-set
+  const loc = findLocation(prefillLoc);
+  if (loc) {
+    selectLocation(loc);
+  } else {
     document.getElementById('loc-search').value = decodeURIComponent(prefillLoc.replace(/\+/g, ' ')).trim();
     renderLocations(document.getElementById('loc-search').value);
   }
-} else if (prefillName) {
-  // Have name but no location — go to step 1 with name ready
-  renderLocations();
 }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
