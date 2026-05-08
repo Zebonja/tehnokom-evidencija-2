@@ -529,37 +529,78 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('visible'), 3500);
 }
 
+// ── UTILS ──────────────────────────────────────────────────────
+function normalizeLoc(s) {
+  return s.replace(/\s*-\s*/g, ' - ').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function findLocation(raw) {
+  const decoded = decodeURIComponent(raw.replace(/\+/g, ' ')).trim();
+  // Exact match
+  if (LOCATIONS.includes(decoded)) return decoded;
+  // Case-insensitive
+  const ci = LOCATIONS.find(l => l.toLowerCase() === decoded.toLowerCase());
+  if (ci) return ci;
+  // Fuzzy - normalize dashes
+  const fuzzy = LOCATIONS.find(l => normalizeLoc(l) === normalizeLoc(decoded));
+  if (fuzzy) return fuzzy;
+  return null;
+}
+
 // ── INIT ───────────────────────────────────────────────────────
 renderLocations();
 
-// Check URL params for prefilled location (from QR code)
 const params = new URLSearchParams(window.location.search);
-const prefillLoc = params.get('loc');
+const prefillLoc  = params.get('loc');
+const prefillName = params.get('name');
+const action      = params.get('action'); // 'clockin' or 'clockout'
+
+// If name is in URL (from home screen shortcut) — pre-fill and skip to step 3
+if (prefillName) {
+  const decodedName = decodeURIComponent(prefillName.replace(/\+/g, ' ')).trim();
+  document.getElementById('name-input').value = decodedName;
+  selectedName = decodedName;
+  document.getElementById('greeting-name').textContent = decodedName.split(' ')[0];
+}
+
+// If location is in URL (from QR scan)
 if (prefillLoc) {
-  // Decode and normalize: replace + with space, normalize spaces around dash
-  const decoded = decodeURIComponent(prefillLoc.replace(/\+/g, ' ')).trim();
-  // Try exact match first
-  if (LOCATIONS.includes(decoded)) {
-    selectLocation(decoded);
-  } else {
-    // Try case-insensitive match
-    const match = LOCATIONS.find(l => l.toLowerCase() === decoded.toLowerCase());
-    if (match) {
-      selectLocation(match);
+  const loc = findLocation(prefillLoc);
+  if (loc) {
+    selectedLocation = loc;
+    document.getElementById('greeting-loc').textContent = loc;
+    document.getElementById('selected-loc-display').textContent = loc;
+
+    // If we also have a name AND action — auto-submit immediately
+    if (prefillName && action) {
+      const decodedName = decodeURIComponent(prefillName.replace(/\+/g, ' ')).trim();
+      selectedName = decodedName;
+      const type = action === 'clockout' ? 'Clock Out' : 'Clock In';
+      // Show action screen briefly then auto-submit
+      showScreen('screen-action');
+      updateDots(3);
+      startClock();
+      document.getElementById('greeting-name').textContent = decodedName.split(' ')[0];
+      document.getElementById('greeting-loc').textContent = loc;
+      // Auto submit after short delay so user sees what's happening
+      setTimeout(function() { submit(type); }, 800);
+    } else if (prefillName) {
+      // Have name + location but no action — show action screen
+      showScreen('screen-action');
+      updateDots(3);
+      startClock();
     } else {
-      // Try fuzzy match - normalize spaces around dashes
-      const normalize = s => s.replace(/\s*-\s*/g, ' - ').replace(/\s+/g, ' ').trim();
-      const normalDecoded = normalize(decoded);
-      const fuzzy = LOCATIONS.find(l => normalize(l).toLowerCase() === normalDecoded.toLowerCase());
-      if (fuzzy) {
-        selectLocation(fuzzy);
-      } else {
-        // Pre-fill search field so user can find it easily
-        document.getElementById('loc-search').value = decoded;
-        renderLocations(decoded);
-      }
+      // Have location only — go to name screen
+      selectLocation(loc);
     }
+  } else {
+    // Location not found — pre-fill search
+    document.getElementById('loc-search').value = decodeURIComponent(prefillLoc.replace(/\+/g, ' ')).trim();
+    renderLocations(document.getElementById('loc-search').value);
   }
+} else if (prefillName) {
+  // Have name but no location — go to step 1 with name ready
+  renderLocations();
 }
 </script>
 </body>
