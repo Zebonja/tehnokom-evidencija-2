@@ -1,79 +1,543 @@
-exports.handler = async function(event, context) {
-  // Allow CORS
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
-  };
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tehnokom – Evidencija radnog vremena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --surface2: #242424;
+  --border: #2e2e2e;
+  --text: #f0f0f0;
+  --muted: #888;
+  --green: #22c55e;
+  --green-dim: #14532d;
+  --green-bg: #052e16;
+  --orange: #f97316;
+  --orange-dim: #7c2d12;
+  --orange-bg: #2d1200;
+  --blue: #3b82f6;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; }
 
-  // Handle preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+body { display: flex; flex-direction: column; min-height: 100vh; }
 
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers, body: 'Method not allowed' };
-  }
+.app { flex: 1; display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; width: 100%; padding: 0 16px 32px; }
 
+/* Header */
+.header { padding: 28px 0 24px; text-align: center; }
+.logo-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 6px; }
+.logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.company { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; color: var(--muted); text-transform: uppercase; }
+.tagline { font-size: 11px; color: #555; margin-top: 4px; font-family: 'DM Mono', monospace; }
+
+/* Step indicators */
+.steps { display: flex; gap: 8px; margin-bottom: 24px; }
+.step-dot { flex: 1; height: 3px; border-radius: 2px; background: var(--border); transition: background 0.3s; }
+.step-dot.active { background: var(--green); }
+.step-dot.done { background: #166534; }
+
+/* Screen */
+.screen { display: none; flex: 1; flex-direction: column; gap: 16px; animation: fadeUp 0.3s ease; }
+.screen.active { display: flex; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Section label */
+.label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+
+/* Search input */
+.search-wrap { position: relative; }
+.search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+input[type="text"], input[type="search"] {
+  width: 100%; padding: 14px 14px 14px 42px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 15px;
+  outline: none; transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+input:focus { border-color: #444; }
+input::placeholder { color: #555; }
+
+/* Location list */
+.loc-list { flex: 1; overflow-y: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); max-height: 340px; }
+.loc-item {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.15s; font-size: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.loc-item:last-child { border-bottom: none; }
+.loc-item:active { background: var(--surface2); }
+.loc-item svg { width: 16px; height: 16px; color: var(--muted); flex-shrink: 0; }
+.loc-item span { flex: 1; line-height: 1.3; }
+.loc-empty { padding: 32px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+
+/* Name input screen */
+.name-back { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; cursor: pointer; margin-bottom: 4px; padding: 4px 0; }
+.name-back svg { width: 16px; height: 16px; }
+.selected-loc {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.selected-loc svg { width: 18px; height: 18px; color: var(--green); flex-shrink: 0; }
+.selected-loc-name { font-size: 14px; font-weight: 500; line-height: 1.3; }
+
+.name-input-wrap input { padding-left: 14px; }
+
+/* Name suggestions */
+.name-suggestions { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; max-height: 200px; overflow-y: auto; display: none; }
+.name-suggestions.visible { display: block; }
+.name-suggest-item { padding: 12px 16px; cursor: pointer; font-size: 14px; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+.name-suggest-item:last-child { border-bottom: none; }
+.name-suggest-item:active { background: var(--surface2); }
+
+/* Action screen */
+.action-greeting { font-size: 22px; font-weight: 500; line-height: 1.3; }
+.action-greeting span { color: var(--green); }
+.action-subloc { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+.time-display {
+  text-align: center; padding: 24px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.time-clock { font-family: 'DM Mono', monospace; font-size: 42px; font-weight: 500; letter-spacing: 2px; }
+.time-date { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+.action-btns { display: flex; flex-direction: column; gap: 12px; }
+
+.btn-clock {
+  width: 100%; padding: 20px; border: none; border-radius: var(--radius);
+  font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 10px;
+  letter-spacing: 0.3px;
+}
+.btn-clock:active { transform: scale(0.97); }
+.btn-in { background: var(--green); color: #fff; }
+.btn-in:active { background: #16a34a; }
+.btn-out { background: var(--orange); color: #fff; }
+.btn-out:active { background: #ea6603; }
+.btn-clock svg { width: 22px; height: 22px; }
+
+.btn-secondary {
+  width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif;
+  font-size: 14px; cursor: pointer; transition: all 0.15s;
+}
+.btn-secondary:active { background: var(--surface); }
+
+/* Success screen */
+.success-icon {
+  width: 72px; height: 72px; border-radius: 50%; margin: 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.success-icon.in { background: var(--green-bg); border: 2px solid var(--green); }
+.success-icon.out { background: var(--orange-bg); border: 2px solid var(--orange); }
+@keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.success-wrap { text-align: center; display: flex; flex-direction: column; gap: 12px; padding: 16px 0; }
+.success-title { font-size: 24px; font-weight: 600; }
+.success-title.in { color: var(--green); }
+.success-title.out { color: var(--orange); }
+.success-detail { font-size: 14px; color: var(--muted); line-height: 1.6; }
+.success-time { font-family: 'DM Mono', monospace; font-size: 28px; font-weight: 500; }
+
+.success-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; text-align: left; display: flex; flex-direction: column; gap: 10px;
+}
+.success-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.success-row-label { color: var(--muted); }
+.success-row-val { font-weight: 500; font-size: 13px; text-align: right; max-width: 60%; }
+
+.btn-new {
+  width: 100%; padding: 16px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+}
+.btn-new:active { background: var(--border); }
+
+/* Loading overlay */
+.loading { position: fixed; inset: 0; background: rgba(15,15,15,0.85); display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; z-index: 100; backdrop-filter: blur(4px); }
+.loading.visible { display: flex; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 14px; color: var(--muted); }
+
+/* Error toast */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: #450a0a; border: 1px solid #7f1d1d; color: #fca5a5; padding: 12px 20px; border-radius: var(--radius-sm); font-size: 13px; transition: transform 0.3s; z-index: 200; white-space: nowrap; }
+.toast.visible { transform: translateX(-50%) translateY(0); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Slanje podataka...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="app">
+  <div class="header">
+    <div class="logo-wrap">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div class="company">Tehnokom</div>
+      </div>
+    </div>
+    <div class="tagline">Evidencija radnog vremena</div>
+  </div>
+
+  <div class="steps">
+    <div class="step-dot active" id="dot-1"></div>
+    <div class="step-dot" id="dot-2"></div>
+    <div class="step-dot" id="dot-3"></div>
+  </div>
+
+  <!-- SCREEN 1: Odabir lokacije -->
+  <div class="screen active" id="screen-location">
+    <div>
+      <div class="label">Korak 1 od 2 — Odaberite lokaciju</div>
+      <div class="search-wrap">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input type="search" id="loc-search" placeholder="Pretraži lokacije..." autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+    </div>
+    <div class="loc-list" id="loc-list"></div>
+  </div>
+
+  <!-- SCREEN 2: Unos imena -->
+  <div class="screen" id="screen-name">
+    <div>
+      <div class="name-back" onclick="goBack()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        Natrag
+      </div>
+    </div>
+    <div>
+      <div class="label">Odabrana lokacija</div>
+      <div class="selected-loc">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <div class="selected-loc-name" id="selected-loc-display"></div>
+      </div>
+    </div>
+    <div>
+      <div class="label">Korak 2 od 2 — Vaše ime</div>
+      <div class="name-input-wrap">
+        <input type="text" id="name-input" placeholder="Upišite ime i prezime..." autocomplete="name" autocorrect="off">
+      </div>
+      <div class="name-suggestions" id="name-suggestions"></div>
+    </div>
+    <button class="btn-secondary" onclick="goToAction()" id="btn-continue" style="margin-top:auto">
+      Nastavi →
+    </button>
+  </div>
+
+  <!-- SCREEN 3: Dolazak / Odlazak -->
+  <div class="screen" id="screen-action">
+    <div>
+      <div class="name-back" onclick="goToName()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        Natrag
+      </div>
+    </div>
+    <div>
+      <div class="action-greeting">Zdravo, <span id="greeting-name"></span></div>
+      <div class="action-subloc" id="greeting-loc"></div>
+    </div>
+    <div class="time-display">
+      <div class="time-clock" id="clock">--:--:--</div>
+      <div class="time-date" id="clock-date"></div>
+    </div>
+    <div class="action-btns">
+      <button class="btn-clock btn-in" onclick="submit('Clock In')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+        DOLAZAK
+      </button>
+      <button class="btn-clock btn-out" onclick="submit('Clock Out')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+        ODLAZAK
+      </button>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: Uspješno -->
+  <div class="screen" id="screen-success">
+    <div class="success-wrap">
+      <div class="success-icon" id="success-icon"></div>
+      <div class="success-title" id="success-title"></div>
+      <div class="success-time" id="success-time"></div>
+      <div class="success-detail" id="success-detail"></div>
+    </div>
+    <div class="success-card">
+      <div class="success-row">
+        <span class="success-row-label">Ime</span>
+        <span class="success-row-val" id="s-name"></span>
+      </div>
+      <div class="success-row">
+        <span class="success-row-label">Lokacija</span>
+        <span class="success-row-val" id="s-loc"></span>
+      </div>
+      <div class="success-row">
+        <span class="success-row-label">Datum</span>
+        <span class="success-row-val" id="s-date"></span>
+      </div>
+      <div class="success-row">
+        <span class="success-row-label">Evidencija</span>
+        <span class="success-row-val" id="s-type" style="font-weight:600"></span>
+      </div>
+    </div>
+    <button class="btn-new" onclick="resetApp()">Nova evidencija</button>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+const TENANT_ID  = '0ee09618-8e36-48b0-b462-2ea263c9794f';
+const USER_ID    = 'cba1bc6e-6f29-4cac-8651-5a209f7652c3';
+const FORM_GUID_IN  = 'GJbgDjaOsEi0Yi6iY8l5T268ocspb6xMhlFaIJ92UsNUNUZPTlhMREFQUUpRTkhBOEs4QldLR1JJMC4u';
+const FORM_GUID_OUT = 'GJbgDjaOsEi0Yi6iY8l5T268ocspb6xMhlFaIJ92UsNUNEhOSk1DUE9USTdUSFVZNkRKS1BCSlBGUC4u';
+const SUBMIT_URL_IN  = `https://forms.office.com/formapi/api/${TENANT_ID}/users/${USER_ID}/forms('${FORM_GUID_IN}')/responses`;
+const SUBMIT_URL_OUT = `https://forms.office.com/formapi/api/${TENANT_ID}/users/${USER_ID}/forms('${FORM_GUID_OUT}')/responses`;
+const Q_LOCATION = 'r97a3ba19fbac496b8a047671d1bfa433';
+const Q_NAME     = 'r4af12f719c7e461d943b74d8a81f043c';
+
+// ── LOCATIONS ─────────────────────────────────────────────────
+const LOCATIONS = ["ILICA - ZARA","ARENA CENTAR - Zara","ARENA CENTAR - Bershka","ARENA CENTAR - STRADIVARIUS","ARENA CENTAR - MASSIMO DUTTI","ARENA CENTAR - PULL&BEAR","ARENA CENTAR - ZARA HOME","CITY CENTER ONE EAST - ZARA","CITY CENTER ONE EAST - STRADIVARIUS","CITY CENTER ONE EAST - OYSHO","CITY CENTER ONE EAST - BERSHKA","CITY CENTER ONE EAST - PULL&BEAR","CITY CENTER ONE WEST - ZARA","CITY CENTER ONE WEST - BERSHKA","CITY CENTER ONE WEST - PULL&BEAR","CITY CENTER ONE WEST - STRADIVARIUS","CITY CENTER ONE WEST - MASSIMO DUTTI","AVENUE MALL - OYSHO","AVENUE MALL - URED UPRAVE","SUPERNOVA ZADAR - ZARA","SUPERNOVA ZADAR - BERSHKA","SUPERNOVA ZADAR - PULL&BEAR","SUPERNOVA ZADAR STRADIVARIUS","MAX CITY PULA - BERSHKA","MAX CITY PULA - PULL&BEAR","MAX CITY PULA - STRADIVARIUS","MALL OF SPLIT - ZARA","MALL OF SPLIT - BERSHKA","MALL OF SPLIT - PULL&BEAR","MALL OF SPLIT - STRADIVARIUS","MALL OF SPLIT - MASSIMO DUTTI","MALL OF SPLIT - ZARA HOME","MALL OF SPLIT - OYSHO","MARMONTOVA - ZARA","SJEVERNA LUKA - SKLADIŠTE","PORTANOVA OSIJEK - ZARA","PORTANOVA OSIJEK - BERSHKA","PORTANOVA OSIJEK - PULL&BEAR","PORTANOVA OSIJEK - STRADIVARIUS","KORZO - ZARA","LUMINI - BERSHKA","SPLIT,Trg Hrvatske bratske zajednice 8","DUBROVNIK, Dr. A. Starčevića 9","ZADAR,Obaa kneza Branimira 20","ŠIBENIK, Velimira Škorpika 6","METKOVIĆ, Ante Starčevića 14","PLOČE, Vladimira Nazora 33","MAKARSKA, Ulica kralja Zvonimira 3A","ŠIBENIK, Stjepana Radića 9","KNIN, Trg Oluje 3","ZADAR, Eugena Kvaternika 3A","TROGIR,Ulica kneza Trpimira 20","BIOGRAD NA MORU, Bračka 2","SOLIN, Stjepana Radića 2","DUBROVNIK, Put sv. Mihajla 8","STON, Put braće Mihanović 3E","IMOTSKI, Glavina Donja bb","METKOVIĆ, Splitska 27","DRNIŠ, Ul. K.A. Stepinca 12","TROGIR, Put Dobrića 4","MAKARSKA, Stjepana Ivčevića 49","MLINI, Gornja Čibaća","STP IMOTSKI, Kralja Zvonimira 35","PULA, Marulićeva 1","PAZIN, Trg Slobode 2","POREČ, Partizanska 4","LABIN, Zelenice 1","UMAG, Obala Josipa Broza Tita 3","PULA, Šijanska Cesta 4","BUZET, Trg Fontana 7","POREČ, M. Vlašića 24","ŽMINJ, Ulica 9. Rujna bb","PAZIN, Vrtlišće 3","BIBIĆI, Bibići bb","BUZET, Mala huba bb","LABIN, Dobrova bb","UMAG, Novigradska bb","RIJEKA, Riva Boduli 3 - IPM","RIJEKA, Korzo 39","OPATIJA, E. Kumičića 8/Papandopula 1","OGULIN, J.J Strossmayera 7","OTOČAC, Kralja Zvonimira 56","KASTAV, Tometići bb","GOSPIĆ, Trg Stjepana Radića 6","RIJEKA, Radnička 39","DELNICE, Supilova 5","BRINJE, Frankopanska 62 B","NOVALJA, Zrinsko Frankopanska 1","CRIKVENICA, Kotorska 19","PRELUK, Preluk 10","DELNICE, Lučićka Cesta 2A","RIJEKA, Corrado Illiasich 25","OTOČAC, A. Starčevića bb","ZABOK, Matije Gupca 13","VARAŽDIN 1, Gospodarska ulica 58","KRIŽEVCI, Trg J. J. Strossmayera 10","ČAKOVEC, Matice Hrvatske 12","ĐURĐEVAC, Antuna Radića 8","BJELOVAR, Trg E. Kvaternika 7","NOVI MAROF, Vrtna 6b","DARUVAR, Stjepana Radića 16","GAREŠNICA, Trg Hrvatskih branitelja 14","LUDBREG, Petra Zrinskog 7","VARAŽDIN, Janka Draškovića 10","IVANEC, Ladislava Šabana 1","VARAŽDIN 2, Gospodarska ulica 58","VARAŽDIN, Trg bana Jelačića 2","KLANJEC, Trg A. Mihanovića 3","KRAPINA, Zagrebačka cesta 9","KOPRIVNICA, Frana Galovića 6","MARČAN, Vinička 5","ĐURĐEVAC, Ulica grada Vukovara 52","DONJA STUBICA, Župana Vratislava 6","GRUBIŠNO POLJE, Nikole Šubića Zrinskog 18","KRAPINSKE TOPLICE, Antuna Mihanovića 12","KOTORIBA, Kralja Tomislava 139","PREGRADA, Ljudevita Gaja 17","BJELOVAR, Trg Stanka Vraza 3","HUM NA SUTLI, Hum na Sutli 159","MARIJA BISTRICA, Šopćev prolaz 1","OROSLAVJE, STP/Mokrice bb","BEDEKOVČINA, Stjepana Radića 1","ĐURMANEC, Đurmanec 137A","PRELOG, Glavna ulica 68","KONJŠČINA, Vukovarska 16","VELIKO TRGOVIŠĆE, Stjepana Radića 53","NOVI MAROF, Ključka bb","MURSKO SREDIŠĆE, J. Broza Tita 6","ZLATAR, Zagrebačka bb","ČAKOVEC, STP Posavec, Neumannova 4","MARIJA BISTRICA, STP/Stubička cesta 3","LUDBREG, STP Centar Kovačić Ludbreg/Koprivnička 36","GRUBIŠNO POLJE, J. Kozarca bb","OSIJEK, Trg Ljudevita Gaja 1","POŽEGA, Republike Hrvatske 1A","VINKOVCI, H.V. Hrvatinića 11","VUKOVAR, J.J. Strossmayera 14","ĐAKOVO, Kralja Tomislava 14","VIROVITICA, Trg kralja Tomislava 4","SLAVONSKI BROD, Ljudevita Gaja 3","SLAVONSKI BROD, Ivana Mažuranića 1","BELI MANASTIR, Osječka 4a","VALPOVO, Vijenac Hrvatske Republike 9","ŽUPANJA, Aleja Matice Hrvatske 29","NOVA GRADIŠKA, Kožarska 2","VINKOVCI, J. Matasovića 6 B","DONJI MIHOLJAC, Trg A. Starčevića 2","NAŠICE, Braće Radić 6","PAKRAC, Kralja Tomislava 73","ILOK, Dr. Franje Tuđmana 4","OSIJEK, Drinska bb","OTOK, Vladimira Nazora 1","SLATINA, Vladimira Nazora 5","POŽEGA, Osječka 34","POŽEGA, Osječka 70","DONJI ANDRIJEVCI, Zagrebačka 3","IVANKOVO, Rojičani 5","ORAHOVICA, Trg Ivana Mažuranića 25","POŽEGA, Vilima Justa 18","SLAVONSKI BROD, Vinogradska cesta 2C","NAŠICE, Vatroslava Lisinskog 100","ĐAKOVO, Vladimira Nazora 16","OSIJEK, Sv. Leopolda Mandića 33","VUKOVAR, Kudeljarska bb","VUKOVAR, Bana Jelačića 53","Jagićeva 33","ZAGREB, Ulica Ive Drmića 3","SISAK, A. i A. Radića 24","VELIKA GORICA, Ulica Hbz 1","IVANIĆ GRAD, Vladimira Nazora 7","ZAGREB, Av. Dubrava 147","KARLOVAC, Petra Zrinskog 13","KUTINA, A.G. Matoša 4","VRBOVEC, Ulica 1. svibnja 1","ZAGREB,Kraljevićeva 30","ZAGREB, Trg bana J. Jelačića 13","ZAGREB, Siget 18C","ZAGREB, Cankareva 7","ZAGREB, Ulica Ive Drmića 3 - Arhivski prostor","SISAK, S. i A. Radića 24, II.kat","SESVETE, Ljudevita Posavskog 7","ZAGREB, Slavenskog 1","KRIŽ, Zagrebačka 5","SISAK, Marina Celjaka 80","DUGO SELO, Srednjak 1","POPOVAČA, Trg Grofova Erdedyja 28","KARLOVAC, Ilovac 29","ŽAKANJE, Žakanje bb","VOJNIĆ, Andrije Hebranga 13","SISAK, Zagrebačka 49D","DUGA RESA, Bana J. Jelačića 48","SVETA NEDJELJA, Ulica Franje Tuđmana 16","JASTREBARSKO, Trešnjevka 6","SV. IVAN ZELINA, Sajmišna bb"];
+
+// ── STATE ──────────────────────────────────────────────────────
+let selectedLocation = '';
+let selectedName = '';
+let clockInterval = null;
+
+// Recently used names (localStorage)
+function getRecentNames() {
+  try { return JSON.parse(localStorage.getItem('recentNames') || '[]'); } catch(e) { return []; }
+}
+function saveRecentName(name) {
   try {
-    const data = JSON.parse(event.body);
-    const { type, location, name } = data;
+    let names = getRecentNames().filter(n => n !== name);
+    names.unshift(name);
+    names = names.slice(0, 20);
+    localStorage.setItem('recentNames', JSON.stringify(names));
+  } catch(e) {}
+}
 
-    if (!type || !location || !name) {
-      return {
-        statusCode: 400, headers,
-        body: JSON.stringify({ error: 'Missing required fields' })
-      };
-    }
+// ── LOCATION SCREEN ────────────────────────────────────────────
+function renderLocations(filter = '') {
+  const list = document.getElementById('loc-list');
+  const filtered = filter
+    ? LOCATIONS.filter(l => l.toLowerCase().includes(filter.toLowerCase()))
+    : LOCATIONS;
 
-    const TENANT_ID  = '0ee09618-8e36-48b0-b462-2ea263c9794f';
-    const USER_ID    = 'cba1bc6e-6f29-4cac-8651-5a209f7652c3';
-    const FORM_GUID_IN  = "GJbgDjaOsEi0Yi6iY8l5T268ocspb6xMhlFaIJ92UsNUNUZPTlhMREFQUUpRTkhBOEs4QldLR1JJMC4u";
-    const FORM_GUID_OUT = "GJbgDjaOsEi0Yi6iY8l5T268ocspb6xMhlFaIJ92UsNUNEhOSk1DUE9USTdUSFVZNkRKS1BCSlBGUC4u";
-    const Q_LOCATION = 'r97a3ba19fbac496b8a047671d1bfa433';
-    const Q_NAME     = 'r4af12f719c7e461d943b74d8a81f043c';
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="loc-empty">Nema rezultata</div>';
+    return;
+  }
 
-    const formGuid = type === 'Clock In' ? FORM_GUID_IN : FORM_GUID_OUT;
-    const submitUrl = `https://forms.office.com/formapi/api/${TENANT_ID}/users/${USER_ID}/forms('${formGuid}')/responses`;
+  list.innerHTML = filtered.map(loc => `
+    <div class="loc-item" onclick="selectLocation('${loc.replace(/'/g, "\\'")}')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+      <span>${loc}</span>
+    </div>
+  `).join('');
+}
 
-    const now = new Date();
-    const startDate = new Date(now.getTime() - 30000);
+document.getElementById('loc-search').addEventListener('input', function() {
+  renderLocations(this.value);
+});
 
-    const payload = {
-      startDate: startDate.toISOString(),
-      submitDate: now.toISOString(),
-      emailReceiptConsent: false,
-      answers: JSON.stringify([
-        { questionId: Q_LOCATION, answer1: location },
-        { questionId: Q_NAME,     answer1: name }
-      ])
-    };
+function selectLocation(loc) {
+  selectedLocation = loc;
+  document.getElementById('selected-loc-display').textContent = loc;
+  showScreen('screen-name');
+  updateDots(2);
+  document.getElementById('name-input').focus();
+  renderNameSuggestions('');
+}
 
-    const response = await fetch(submitUrl, {
+// ── NAME SCREEN ────────────────────────────────────────────────
+function renderNameSuggestions(filter) {
+  const recent = getRecentNames();
+  const sugg = document.getElementById('name-suggestions');
+  if (recent.length === 0) { sugg.classList.remove('visible'); return; }
+
+  const filtered = filter
+    ? recent.filter(n => n.toLowerCase().includes(filter.toLowerCase()))
+    : recent;
+
+  if (filtered.length === 0) { sugg.classList.remove('visible'); return; }
+
+  sugg.innerHTML = filtered.slice(0,6).map(n =>
+    `<div class="name-suggest-item" onclick="pickName('${n.replace(/'/g,"\\'")}') ">${n}</div>`
+  ).join('');
+  sugg.classList.add('visible');
+}
+
+document.getElementById('name-input').addEventListener('input', function() {
+  renderNameSuggestions(this.value);
+});
+
+function pickName(name) {
+  document.getElementById('name-input').value = name;
+  document.getElementById('name-suggestions').classList.remove('visible');
+}
+
+function goBack() {
+  showScreen('screen-location');
+  updateDots(1);
+}
+
+function goToName() {
+  showScreen('screen-name');
+  updateDots(2);
+}
+
+function goToAction() {
+  const name = document.getElementById('name-input').value.trim();
+  if (!name) { showToast('Molimo unesite ime i prezime'); return; }
+  selectedName = name;
+  document.getElementById('greeting-name').textContent = name.split(' ')[0];
+  document.getElementById('greeting-loc').textContent = selectedLocation;
+  showScreen('screen-action');
+  updateDots(3);
+  startClock();
+}
+
+// ── CLOCK ──────────────────────────────────────────────────────
+function startClock() {
+  if (clockInterval) clearInterval(clockInterval);
+  updateClock();
+  clockInterval = setInterval(updateClock, 1000);
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('hr-HR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('clock-date').textContent = now.toLocaleDateString('hr-HR', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+// ── SUBMIT ─────────────────────────────────────────────────────
+async function submit(type) {
+  const now = new Date();
+  showLoading('Slanje evidencije...');
+
+  let success = false;
+  try {
+    const res = await fetch('/.netlify/functions/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        type: type,
+        location: selectedLocation,
+        name: selectedName
+      })
     });
 
-    if (response.ok || response.status === 201) {
-      return {
-        statusCode: 200, headers,
-        body: JSON.stringify({ success: true })
-      };
-    } else {
-      const errText = await response.text();
-      console.error('Forms error:', response.status, errText);
-      return {
-        statusCode: 200, headers,
-        body: JSON.stringify({ success: false, status: response.status, error: errText })
-      };
-    }
+    const data = await res.json();
+    success = data.success === true;
 
+    if (!success) {
+      console.error('Submit failed:', data);
+    }
   } catch(e) {
-    console.error('Function error:', e);
-    return {
-      statusCode: 500, headers,
-      body: JSON.stringify({ error: e.message })
-    };
+    console.error('Submit error:', e);
+    success = false;
   }
-};
+
+  hideLoading();
+
+  if (success) {
+    saveRecentName(selectedName);
+    showSuccess(type, now);
+  } else {
+    showToast('Greška pri slanju. Provjerite internetsku vezu.');
+  }
+}
+
+// ── SUCCESS SCREEN ─────────────────────────────────────────────
+function showSuccess(type, time) {
+  if (clockInterval) { clearInterval(clockInterval); clockInterval = null; }
+
+  const isIn = type === 'Clock In';
+  const icon = document.getElementById('success-icon');
+  icon.textContent = isIn ? '✓' : '✓';
+  icon.className = 'success-icon ' + (isIn ? 'in' : 'out');
+
+  document.getElementById('success-title').textContent = isIn ? 'DOLAZAK ZABILJEŽEN' : 'ODLAZAK ZABILJEŽEN';
+  document.getElementById('success-title').className = 'success-title ' + (isIn ? 'in' : 'out');
+  document.getElementById('success-time').textContent = time.toLocaleTimeString('hr-HR', {hour:'2-digit',minute:'2-digit'});
+  document.getElementById('s-name').textContent = selectedName;
+  document.getElementById('s-loc').textContent = selectedLocation;
+  document.getElementById('s-date').textContent = time.toLocaleDateString('hr-HR');
+  document.getElementById('s-type').textContent = isIn ? 'Dolazak' : 'Odlazak';
+  document.getElementById('s-type').style.color = isIn ? 'var(--green)' : 'var(--orange)';
+
+  showScreen('screen-success');
+}
+
+function resetApp() {
+  selectedLocation = '';
+  selectedName = '';
+  document.getElementById('loc-search').value = '';
+  document.getElementById('name-input').value = '';
+  renderLocations();
+  showScreen('screen-location');
+  updateDots(1);
+}
+
+// ── UTILS ──────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function updateDots(active) {
+  for (let i = 1; i <= 3; i++) {
+    const dot = document.getElementById('dot-' + i);
+    dot.className = 'step-dot' + (i < active ? ' done' : i === active ? ' active' : '');
+  }
+}
+
+function showLoading(text) {
+  document.getElementById('loading-text').textContent = text;
+  document.getElementById('loading').classList.add('visible');
+}
+
+function hideLoading() {
+  document.getElementById('loading').classList.remove('visible');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 3500);
+}
+
+// ── INIT ───────────────────────────────────────────────────────
+renderLocations();
+
+// Check URL params for prefilled location (from QR code)
+const params = new URLSearchParams(window.location.search);
+const prefillLoc = params.get('loc');
+if (prefillLoc && LOCATIONS.includes(prefillLoc)) {
+  selectLocation(prefillLoc);
+}
+</script>
+</body>
+</html>
